@@ -108,6 +108,13 @@
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 30px;
+            height: 350px;
+            position: relative;
+        }
+        
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
         }
         
         .chart-title {
@@ -238,12 +245,12 @@
         
         <div class="chart-container">
             <h2 class="chart-title">📈 资产走势</h2>
-            <canvas id="assetChart" height="200"></canvas>
+            <canvas id="assetChart"></canvas>
         </div>
         
         <div class="chart-container">
             <h2 class="chart-title">🥧 持仓分布</h2>
-            <canvas id="pieChart" height="200"></canvas>
+            <canvas id="pieChart"></canvas>
         </div>
         
         <div class="card">
