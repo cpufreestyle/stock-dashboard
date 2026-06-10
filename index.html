@@ -179,6 +179,53 @@
             color: #888;
         }
         
+        /* 骨架屏动画 */
+        .skeleton-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .skeleton-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            animation: skeleton-pulse 1.5s infinite;
+        }
+        
+        .skeleton-title {
+            height: 20px;
+            width: 60%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .skeleton-value {
+            height: 30px;
+            width: 80%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .skeleton-table {
+            padding: 20px;
+        }
+        
+        .skeleton-row {
+            height: 20px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes skeleton-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
         .error {
             text-align: center;
             padding: 50px;
@@ -231,7 +278,11 @@
         <header>
             <h1>📊 Stock CrewAI Dashboard</h1>
             <p class="update-time" id="updateTime">加载中...</p>
-            <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 刷新数据</button>
+            <div class="header-controls">
+                <input type="date" id="datePicker" class="date-picker" onchange="loadHistoryData()">
+                <input type="text" id="searchBox" class="search-box" placeholder="🔍 搜索持仓..." oninput="searchPositions()">
+                <button class="refresh-btn" id="refreshBtn" onclick="loadData()">🔄 刷新数据</button>
+            </div>
         </header>
         
         <div class="alert" id="alertBox">
@@ -281,12 +332,51 @@
     
     <script>
         let assetChart, pieChart;
-        const DATA_URL = './data/';
+        const DATA_URL = '/data/';
+        let isLoading = false;
+        
+        // 显示骨架屏
+        function showSkeleton() {
+            document.getElementById('summaryGrid').innerHTML = `
+                <div class="skeleton">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-value"></div>
+                </div>
+                <div class="skeleton">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-value"></div>
+                </div>
+                <div class="skeleton">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-value"></div>
+                </div>
+                <div class="skeleton">
+                    <div class="skeleton-title"></div>
+                    <div class="skeleton-value"></div>
+                </div>
+            `;
+            
+            document.getElementById('positionsBody').innerHTML = `
+                <tr>
+                    <td colspan="6" class="loading">
+                        <div class="skeleton" style="height: 20px; margin: 10px 0;"></div>
+                        <div class="skeleton" style="height: 20px; margin: 10px 0;"></div>
+                        <div class="skeleton" style="height: 20px; margin: 10px 0;"></div>
+                    </td>
+                </tr>
+            `;
+        }
         
         async function loadData() {
+            if (isLoading) return;  // 防止重复加载
+            
             const btn = document.getElementById('refreshBtn');
             btn.disabled = true;
             btn.textContent = '⏳ 加载中...';
+            isLoading = true;
+            
+            // 显示骨架屏
+            showSkeleton();
             
             try {
                 // 尝试加载最新数据
