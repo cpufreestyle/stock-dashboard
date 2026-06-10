@@ -287,10 +287,16 @@
                 const response = await fetch(`${DATA_URL}${today}-stock-crewai.json`);
                 
                 if (!response.ok) {
-                    throw new Error('数据加载失败');
+                    throw new Error(`数据加载失败: ${response.status}`);
                 }
                 
                 const data = await response.json();
+                
+                // 验证数据格式
+                if (!data || typeof data !== 'object') {
+                    throw new Error('数据格式错误');
+                }
+                
                 renderDashboard(data);
             } catch (error) {
                 console.error('加载数据失败:', error);
@@ -298,11 +304,25 @@
                 // 尝试加载示例数据
                 try {
                     const sampleResponse = await fetch('sample-data.json');
+                    
+                    if (!sampleResponse.ok) {
+                        throw new Error('示例数据加载失败');
+                    }
+                    
                     const sampleData = await sampleResponse.json();
+                    
+                    if (!sampleData || typeof sampleData !== 'object') {
+                        throw new Error('示例数据格式错误');
+                    }
+                    
+                    console.log('使用示例数据');
                     renderDashboard(sampleData);
                 } catch (e) {
+                    console.error('所有数据源均失败:', e);
                     document.getElementById('summaryGrid').innerHTML = 
-                        `<div class="error">❌ 无法加载数据: ${error.message}</div>`;
+                        `<div class="error">❌ 无法加载数据<br>错误: ${error.message}<br>请检查 data/ 目录是否存在数据文件</div>`;
+                    document.getElementById('positionsBody').innerHTML = 
+                        `<tr><td colspan="6" class="error">无数据</td></tr>`;
                 }
             }
             
@@ -311,9 +331,15 @@
         }
         
         function renderDashboard(data) {
+            // 防御性检查
+            if (!data || typeof data !== 'object') {
+                console.error('renderDashboard: data is undefined or not an object');
+                return;
+            }
+            
             // 更新时间
             document.getElementById('updateTime').textContent = 
-                `最后更新: ${data.updateTime || data.date}`;
+                `最后更新: ${data.updateTime || data.date || '未知'}`;
             
             // 渲染概览卡片
             const pnlPct = data.total_pnl_pct || 0;
@@ -343,7 +369,14 @@
             const tbody = document.getElementById('positionsBody');
             tbody.innerHTML = '';
             
-            data.positions?.forEach(pos => {
+            // 确保 positions 是数组
+            const positions = Array.isArray(data.positions) ? data.positions : [];
+            
+            if (positions.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="loading">暂无持仓数据</td></tr>`;
+            }
+            
+            positions.forEach(pos => {
                 const pnl = pos.pnl_pct || 0;
                 const pnlClass = pnl >= 0 ? 'positive' : 'negative';
                 const pnlEmoji = pnl >= 0 ? '📈' : '📉';
@@ -374,6 +407,12 @@
         }
         
         function renderCharts(data) {
+            // 防御性检查
+            if (!data || typeof data !== 'object') {
+                console.error('renderCharts: data is invalid');
+                return;
+            }
+            
             // 资产走势图
             const assetCtx = document.getElementById('assetChart').getContext('2d');
             
@@ -433,8 +472,10 @@
             
             if (pieChart) pieChart.destroy();
             
-            const positionNames = data.positions?.map(p => p.name) || [];
-            const positionValues = data.positions?.map(p => p.shares * p.current) || [];
+            // 确保 positions 是数组
+            const positions = Array.isArray(data.positions) ? data.positions : [];
+            const positionNames = positions.length > 0 ? positions.map(p => p.name || '未知') : [];
+            const positionValues = positions.length > 0 ? positions.map(p => (p.shares || 0) * (p.current || 0)) : [];
             
             const colors = [
                 '#00d4ff', '#7c3aed', '#00d4aa', '#ff4757', '#ffa502',
