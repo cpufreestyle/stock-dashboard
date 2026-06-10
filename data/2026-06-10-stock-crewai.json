@@ -5,20 +5,12 @@
   "cash": 2385.0,
   "positions": [
     {
-      "code": "601088",
-      "name": "中国神华",
-      "shares": 300,
-      "avg_cost": 47.6,
-      "current": 48.52,
-      "pnl_pct": 1.93
-    },
-    {
       "code": "603259",
       "name": "药明康德",
       "shares": 100,
       "avg_cost": 103.85,
-      "current": 103.1,
-      "pnl_pct": -0.72
+      "current": 96.58,
+      "pnl_pct": -7.0
     },
     {
       "code": "603799",
@@ -41,10 +33,18 @@
       "name": "TCL科技",
       "shares": 8400,
       "avg_cost": 4.38,
-      "current": 4.38,
-      "pnl_pct": 0.0
+      "current": 4.61,
+      "pnl_pct": 5.25
+    },
+    {
+      "code": "601088",
+      "name": "中国神华",
+      "shares": 300,
+      "avg_cost": 47.6,
+      "current": 47.79,
+      "pnl_pct": 0.4
     }
   ],
   "actions": [],
-  "updateTime": "2026-06-10 10:20:19"
+  "updateTime": "2026-06-10 11:52:11"
 }
