@@ -371,6 +371,8 @@
     <script>
         let assetChart, pieChart;
         const DATA_URL = '/data/';
+        const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:8080' : '';
+        const USE_API = !!API_BASE;
         let isLoading = false;
         let currentData = null;
         
@@ -426,15 +428,33 @@
             showSkeleton();
             
             try {
-                const response = await fetch(`${DATA_URL}${selectedDate}-stock-crewai.json`);
+                let data = null;
                 
-                if (!response.ok) {
-                    throw new Error(`历史数据加载失败: ${response.status}`);
+                // 1. 尝试 REST API
+                if (USE_API) {
+                    try {
+                        const apiResp = await fetch(`${API_BASE}/api/by-date/${selectedDate}`);
+                        if (apiResp.ok) {
+                            data = await apiResp.json();
+                            console.log(`[Dashboard] 历史数据来源: REST API (${selectedDate})`);
+                        }
+                    } catch (apiErr) {
+                        console.warn('[Dashboard] API 历史数据不可用:', apiErr.message);
+                    }
                 }
                 
-                const data = await response.json();
+                // 2. 尝试本地 JSON
+                if (!data) {
+                    const response = await fetch(`${DATA_URL}${selectedDate}-stock-crewai.json`);
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log(`[Dashboard] 历史数据来源: 本地 JSON (${selectedDate})`);
+                    }
+                }
                 
                 if (!data || typeof data !== 'object') {
+                    throw new Error(`日期 ${selectedDate} 无数据`);
+                }
                     throw new Error('数据格式错误');
                 }
                 
@@ -517,46 +537,53 @@
             
             showSkeleton();
             
+            // 数据加载优先级：REST API > 本地 JSON > sample-data.json
             try {
-                const today = new Date().toISOString().split('T')[0];
-                const response = await fetch(`${DATA_URL}${today}-stock-crewai.json`);
+                let data = null;
                 
-                if (!response.ok) {
-                    throw new Error(`数据加载失败: ${response.status}`);
+                // 1. 尝试 REST API
+                if (USE_API) {
+                    try {
+                        const apiResp = await fetch(`${API_BASE}/api/latest`);
+                        if (apiResp.ok) {
+                            data = await apiResp.json();
+                            console.log('[Dashboard] 数据来源: REST API');
+                        }
+                    } catch (apiErr) {
+                        console.warn('[Dashboard] API 不可用:', apiErr.message);
+                    }
                 }
                 
-                const data = await response.json();
+                // 2. 尝试本地 JSON 文件
+                if (!data) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const response = await fetch(`${DATA_URL}${today}-stock-crewai.json`);
+                    if (response.ok) {
+                        data = await response.json();
+                        console.log('[Dashboard] 数据来源: 本地 JSON');
+                    }
+                }
+                
+                // 3. Fallback: sample-data.json
+                if (!data) {
+                    const sampleResponse = await fetch('sample-data.json');
+                    if (sampleResponse.ok) {
+                        data = await sampleResponse.json();
+                        console.log('[Dashboard] 数据来源: 示例数据');
+                    }
+                }
                 
                 if (!data || typeof data !== 'object') {
-                    throw new Error('数据格式错误');
+                    throw new Error('所有数据源均不可用');
                 }
                 
                 renderDashboard(data);
             } catch (error) {
                 console.error('加载数据失败:', error);
-                
-                try {
-                    const sampleResponse = await fetch('sample-data.json');
-                    
-                    if (!sampleResponse.ok) {
-                        throw new Error('示例数据加载失败');
-                    }
-                    
-                    const sampleData = await sampleResponse.json();
-                    
-                    if (!sampleData || typeof sampleData !== 'object') {
-                        throw new Error('示例数据格式错误');
-                    }
-                    
-                    console.log('使用示例数据');
-                    renderDashboard(sampleData);
-                } catch (e) {
-                    console.error('所有数据源均失败:', e);
-                    document.getElementById('summaryGrid').innerHTML = 
-                        `<div class="error">❌ 无法加载数据<br>错误: ${error.message}<br>请检查 data/ 目录是否存在数据文件</div>`;
-                    document.getElementById('positionsBody').innerHTML = 
-                        `<tr><td colspan="6" class="error">无数据</td></tr>`;
-                }
+                document.getElementById('summaryGrid').innerHTML = 
+                    `<div class="error">❌ 无法加载数据<br>错误: ${error.message}<br>请检查 API 服务或 data/ 目录</div>`;
+                document.getElementById('positionsBody').innerHTML = 
+                    `<tr><td colspan="6" class="error">无数据</td></tr>`;
             }
             
             isLoading = false;
@@ -750,6 +777,26 @@
             return new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 }).format(num);
         }
         
+        // 初始化：加载可用日期列表
+        async function initDateList() {
+            if (!USE_API) return;
+            try {
+                const resp = await fetch(`${API_BASE}/api/dates`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const picker = document.getElementById('datePicker');
+                if (picker && data.dates.length > 0) {
+                    // 更新日期选择器的可选范围
+                    picker.min = data.dates[data.dates.length - 1];
+                    picker.max = data.dates[0];
+                    console.log(`[Dashboard] 可用日期: ${data.count} 天`);
+                }
+            } catch (e) {
+                console.warn('[Dashboard] 日期列表加载失败:', e.message);
+            }
+        }
+        
+        initDateList();
         loadData();
         
         setInterval(loadData, 5 * 60 * 1000);
