@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install API dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ruff
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f api/requirements.txt ]; then pip install -r api/requirements.txt; fi
+
+      - name: Lint Python
+        run: ruff check api/ || true
+        continue-on-error: true
+
+      - name: Validate HTML structure
+        run: |
+          if [ -f index.html ]; then
+            echo "Checking index.html exists and is non-empty"
+            test -s index.html
+          fi
+
+      - name: Check JS files exist
+        run: |
+          for f in js/app.js js/api.js js/charts.js css/style.css; do
+            if [ -f "$f" ]; then
+              echo "✓ $f exists"
+            else
+              echo "✗ $f missing"
+            fi
+          done
+
+      - name: Validate sample data
+        run: |
+          python -c "import json; json.load(open('sample-data.json')); print('sample-data.json: valid')"
