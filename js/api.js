@@ -1,6 +1,6 @@
 /**
  * API Client — Stock Dashboard 数据接口层
- * 统一管理所有 API 调用，支持多数据源 fallback
+ * 统一管理所有 API 调用，支持多数据源 fallback + 实时刷新
  */
 
 const API_BASE = window.location.origin.includes('localhost') ? 'http://localhost:8080' : '';
@@ -10,14 +10,16 @@ const DATA_URL = '/data/';
 /**
  * 加载最新数据
  * 优先级: REST API > 本地 JSON > sample-data.json
+ * @param {boolean} refresh - 是否刷新实时股价
  */
-async function fetchLatestData() {
+async function fetchLatestData(refresh = false) {
     // 1. REST API
     if (USE_API) {
         try {
-            const resp = await fetch(`${API_BASE}/api/latest`);
+            const url = refresh ? `${API_BASE}/api/latest?refresh=true` : `${API_BASE}/api/latest`;
+            const resp = await fetch(url);
             if (resp.ok) {
-                console.log('[Dashboard] 数据来源: REST API');
+                console.log(`[Dashboard] 数据来源: REST API${refresh ? ' (实时刷新)' : ''}`);
                 return await resp.json();
             }
         } catch (err) {
@@ -98,7 +100,6 @@ async function fetchHistory() {
  * 从本地 data/ 目录构建历史数据
  */
 async function fetchHistoryFromLocal() {
-    // 无法直接列目录，用 sample-data 作为单点
     try {
         const resp = await fetch('sample-data.json');
         if (resp.ok) {

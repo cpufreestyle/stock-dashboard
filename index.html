@@ -10,55 +10,55 @@
 <body>
     <div class="container">
         <header>
-            <h1>\ud83d\udcca Stock CrewAI Dashboard</h1>
-            <p class="update-time" id="updateTime">\u52a0\u8f7d\u4e2d...</p>
+            <h1>📊 Stock CrewAI Dashboard</h1>
+            <p class="update-time" id="updateTime">加载中...</p>
             <div class="header-controls">
                 <input type="date" id="datePicker" class="date-picker">
-                <input type="text" id="searchBox" class="search-box" placeholder="\ud83d\udd0d \u641c\u7d22\u6301\u4ed3...">
-                <button class="refresh-btn" id="refreshBtn">\ud83d\udd04 \u5237\u65b0\u6570\u636e</button>
+                <input type="text" id="searchBox" class="search-box" placeholder="🔍 搜索持仓...">
+                <button class="refresh-btn" id="refreshBtn" title="单击: 刷新数据 | 双击: 获取实时行情">🔄 刷新数据</button>
             </div>
         </header>
 
         <div class="alert" id="alertBox">
-            <div class="alert-title">\u26a0\ufe0f \u98ce\u9669\u63d0\u793a</div>
+            <div class="alert-title">⚠️ 风险提示</div>
             <div id="alertContent"></div>
         </div>
 
         <div class="grid" id="summaryGrid">
-            <div class="loading">\u52a0\u8f7d\u4e2d...</div>
+            <div class="loading">加载中...</div>
         </div>
 
         <div class="chart-container">
-            <h2 class="chart-title">\ud83d\udcc8 \u8d44\u4ea7\u8d70\u52bf</h2>
+            <h2 class="chart-title">📈 资产走势</h2>
             <canvas id="assetChart"></canvas>
         </div>
 
         <div class="chart-container">
-            <h2 class="chart-title">\ud83e\udd55 \u6301\u4ed3\u5206\u5e03</h2>
+            <h2 class="chart-title">🥧 持仓分布</h2>
             <canvas id="pieChart"></canvas>
         </div>
 
         <div class="card">
-            <h2 class="chart-title">\ud83d\udccb \u6301\u4ed3\u660e\u7ec6</h2>
+            <h2 class="chart-title">📋 持仓明细</h2>
             <table class="positions-table">
                 <thead>
                     <tr>
-                        <th>\u80a1\u7968</th>
-                        <th>\u80a1\u6570</th>
-                        <th>\u6210\u672c</th>
-                        <th>\u73b0\u4ef7</th>
-                        <th>\u5e02\u503c</th>
-                        <th>\u76c8\u4e8f</th>
+                        <th>股票</th>
+                        <th>股数</th>
+                        <th>成本</th>
+                        <th>现价</th>
+                        <th>市值</th>
+                        <th>盈亏</th>
                     </tr>
                 </thead>
                 <tbody id="positionsBody">
-                    <tr><td colspan="6" class="loading">\u52a0\u8f7d\u4e2d...</td></tr>
+                    <tr><td colspan="6" class="loading">加载中...</td></tr>
                 </tbody>
             </table>
         </div>
 
         <footer>
-            <p>Powered by Stock CrewAI | \u6570\u636e\u4ec5\u4f9b\u53c2\u8003\uff0c\u4e0d\u6784\u6210\u6295\u8d44\u5efa\u8bae</p>
+            <p>Powered by Stock CrewAI | 数据仅供参考，不构成投资建议 | 双击刷新按钮获取实时行情</p>
         </footer>
     </div>
 

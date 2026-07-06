@@ -25,15 +25,15 @@ async function init() {
         renderDashboard(currentData);
     } else {
         document.getElementById('summaryGrid').innerHTML =
-            `<div class="error">\u274c \u65e0\u6cd5\u52a0\u8f7d\u6570\u636e<br>\u9519\u8bef: ${data.reason.message}<br>\u8bf7\u68c0\u67e5 API \u670d\u52a1\u6216 data/ \u76ee\u5f55</div>`;
+            `<div class="error">❌ 无法加载数据<br>错误: ${data.reason.message}<br>请检查 API 服务或 data/ 目录</div>`;
         document.getElementById('positionsBody').innerHTML =
-            `<tr><td colspan="6" class="error">\u65e0\u6570\u636e</td></tr>`;
+            `<tr><td colspan="6" class="error">无数据</td></tr>`;
     }
 
     if (history.status === 'fulfilled') {
         historyData = history.value;
     } else {
-        console.warn('[Dashboard] \u5386\u53f2\u8d8b\u52bf\u52a0\u8f7d\u5931\u8d25:', history.reason?.message);
+        console.warn('[Dashboard] 历史趋势加载失败:', history.reason?.message);
         historyData = [];
     }
 }
@@ -51,34 +51,34 @@ function renderDashboard(data) {
     currentData = data;
 
     document.getElementById('updateTime').textContent =
-        `\u6700\u540e\u66f4\u65b0: ${data.updateTime || data.date || '\u672a\u77e5'}`;
+        `最后更新: ${data.updateTime || data.date || '未知'}`;
 
     const pnlPct = data.total_pnl_pct || 0;
     const pnlClass = pnlPct >= 0 ? 'positive' : 'negative';
-    const pnlEmoji = pnlPct >= 0 ? '\ud83d\udcc8' : '\ud83d\udcc9';
+    const pnlEmoji = pnlPct >= 0 ? '📈' : '📉';
 
     document.getElementById('summaryGrid').innerHTML = `
         <div class="card">
-            <div class="card-title">\u603b\u8d44\u4ea7</div>
-            <div class="card-value">\u00a5${formatNumber(data.total_asset)}</div>
+            <div class="card-title">总资产</div>
+            <div class="card-value">¥${formatNumber(data.total_asset)}</div>
         </div>
         <div class="card">
-            <div class="card-title">\u603b\u6536\u76ca</div>
+            <div class="card-title">总收益</div>
             <div class="card-value ${pnlClass}">${pnlEmoji} ${pnlPct > 0 ? '+' : ''}${pnlPct.toFixed(2)}%</div>
         </div>
         <div class="card">
-            <div class="card-title">\u73b0\u91d1</div>
-            <div class="card-value">\u00a5${formatNumber(data.cash)}</div>
+            <div class="card-title">现金</div>
+            <div class="card-value">¥${formatNumber(data.cash)}</div>
         </div>
         <div class="card">
-            <div class="card-title">\u6301\u4ed3\u6570</div>
-            <div class="card-value">${data.positions?.length || 0} \u53ea</div>
+            <div class="card-title">持仓数</div>
+            <div class="card-value">${data.positions?.length || 0} 只</div>
         </div>
     `;
 
     renderPositions(data.positions || []);
 
-    // \u4f7f\u7528\u771f\u5b9e\u5386\u53f2\u6570\u636e\u6e32\u67d3\u8d44\u4ea7\u8d70\u52bf\u56fe
+    // 使用真实历史数据渲染资产走势图
     renderAssetChart(historyData, data.total_asset);
     renderPieChart(data.positions || []);
 
@@ -90,15 +90,18 @@ function renderPositions(positions) {
     tbody.innerHTML = '';
 
     if (positions.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="loading">\u672a\u627e\u5230\u5339\u914d\u7684\u6301\u4ed3</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="loading">未找到匹配的持仓</td></tr>`;
         return;
     }
 
     positions.forEach(pos => {
         const pnl = pos.pnl_pct || 0;
         const pnlClass = pnl >= 0 ? 'positive' : 'negative';
-        const pnlEmoji = pnl >= 0 ? '\ud83d\udcc8' : '\ud83d\udcc9';
+        const pnlEmoji = pnl >= 0 ? '📈' : '📉';
         const marketValue = pos.shares * pos.current;
+        const dayHighLow = pos.day_high && pos.day_low
+            ? `<div style="font-size:10px;color:var(--text2)">日内: ${pos.day_low} ~ ${pos.day_high}</div>`
+            : '';
 
         tbody.innerHTML += `
             <tr>
@@ -107,11 +110,12 @@ function renderPositions(positions) {
                         <span>${pos.name}</span>
                         <span class="stock-code">${pos.code}</span>
                     </div>
+                    ${dayHighLow}
                 </td>
                 <td>${pos.shares}</td>
-                <td>\u00a5${pos.avg_cost.toFixed(2)}</td>
-                <td>\u00a5${pos.current.toFixed(2)}</td>
-                <td>\u00a5${formatNumber(marketValue)}</td>
+                <td>¥${pos.avg_cost.toFixed(2)}</td>
+                <td>¥${pos.current.toFixed(2)}</td>
+                <td>¥${formatNumber(marketValue)}</td>
                 <td><span class="pnl-badge ${pnlClass}">${pnlEmoji} ${pnl > 0 ? '+' : ''}${pnl.toFixed(2)}%</span></td>
             </tr>
         `;
@@ -155,25 +159,25 @@ async function loadHistoryData() {
 
     const btn = document.getElementById('refreshBtn');
     btn.disabled = true;
-    btn.textContent = '\u23f3 \u52a0\u8f7d\u4e2d...';
+    btn.textContent = '⏳ 加载中...';
 
     showSkeleton();
 
     try {
         const data = await fetchByDate(selectedDate);
         if (!data || typeof data !== 'object') {
-            throw new Error('\u6570\u636e\u683c\u5f0f\u9519\u8bef');
+            throw new Error('数据格式错误');
         }
         renderDashboard(data);
     } catch (error) {
-        console.error('\u52a0\u8f7d\u5386\u53f2\u6570\u636e\u5931\u8d25:', error);
+        console.error('加载历史数据失败:', error);
         document.getElementById('summaryGrid').innerHTML =
-            `<div class="error">\u274c \u65e0\u6cd5\u52a0\u8f7d ${selectedDate} \u7684\u6570\u636e<br>\u9519\u8bef: ${error.message}</div>`;
+            `<div class="error">❌ 无法加载 ${selectedDate} 的数据<br>错误: ${error.message}</div>`;
     }
 
     isLoading = false;
     btn.disabled = false;
-    btn.textContent = '\ud83d\udd04 \u5237\u65b0\u6570\u636e';
+    btn.textContent = '🔄 刷新数据';
 }
 
 // ============================================
@@ -186,27 +190,55 @@ async function loadData() {
 
     const btn = document.getElementById('refreshBtn');
     btn.disabled = true;
-    btn.textContent = '\u23f3 \u52a0\u8f7d\u4e2d...';
+    btn.textContent = '⏳ 加载中...';
 
     showSkeleton();
 
     try {
         const data = await fetchLatestData();
         if (!data || typeof data !== 'object') {
-            throw new Error('\u6570\u636e\u683c\u5f0f\u9519\u8bef');
+            throw new Error('数据格式错误');
         }
         renderDashboard(data);
     } catch (error) {
-        console.error('\u52a0\u8f7d\u6570\u636e\u5931\u8d25:', error);
+        console.error('加载数据失败:', error);
         document.getElementById('summaryGrid').innerHTML =
-            `<div class="error">\u274c \u65e0\u6cd5\u52a0\u8f7d\u6570\u636e<br>\u9519\u8bef: ${error.message}<br>\u8bf7\u68c0\u67e5 API \u670d\u52a1\u6216 data/ \u76ee\u5f55</div>`;
+            `<div class="error">❌ 无法加载数据<br>错误: ${error.message}<br>请检查 API 服务或 data/ 目录</div>`;
         document.getElementById('positionsBody').innerHTML =
-            `<tr><td colspan="6" class="error">\u65e0\u6570\u636e</td></tr>`;
+            `<tr><td colspan="6" class="error">无数据</td></tr>`;
     }
 
     isLoading = false;
     btn.disabled = false;
-    btn.textContent = '\ud83d\udd04 \u5237\u65b0\u6570\u636e';
+    btn.textContent = '🔄 刷新数据';
+}
+
+/**
+ * 刷新实时股价
+ */
+async function refreshRealtime() {
+    if (isLoading) return;
+    isLoading = true;
+
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳ 获取实时行情...';
+
+    try {
+        const data = await fetchLatestData(true);
+        if (!data || typeof data !== 'object') {
+            throw new Error('数据格式错误');
+        }
+        renderDashboard(data);
+        console.log('[Dashboard] 实时股价已刷新');
+    } catch (error) {
+        console.error('实时刷新失败:', error);
+        alert('实时刷新失败: ' + error.message);
+    }
+
+    isLoading = false;
+    btn.disabled = false;
+    btn.textContent = '🔄 刷新数据';
 }
 
 // ============================================
@@ -234,12 +266,12 @@ function checkAlerts(data) {
     const pnlPct = data.total_pnl_pct || 0;
 
     if (pnlPct < -5.0) {
-        alerts.push(`\u603b\u6536\u76ca\u4f4e\u4e8e\u9608\u503c: ${pnlPct.toFixed(2)}% < -5%`);
+        alerts.push(`总收益低于阈值: ${pnlPct.toFixed(2)}% < -5%`);
     }
 
     data.positions?.forEach(pos => {
         if (pos.pnl_pct < -10.0) {
-            alerts.push(`${pos.name} \u4e8f\u635f\u8d85\u8fc7\u9608\u503c: ${pos.pnl_pct.toFixed(2)}%`);
+            alerts.push(`${pos.name} 亏损超过阈值: ${pos.pnl_pct.toFixed(2)}%`);
         }
     });
 
@@ -249,13 +281,13 @@ function checkAlerts(data) {
             const posValue = (pos.shares || 0) * (pos.current || 0);
             const concentration = (posValue / totalValue) * 100;
             if (concentration > 50) {
-                alerts.push(`${pos.name} \u6301\u4ed3\u96c6\u4e2d\u5ea6\u8fc7\u9ad8: ${concentration.toFixed(2)}% > 50%`);
+                alerts.push(`${pos.name} 持仓集中度过高: ${concentration.toFixed(2)}% > 50%`);
             }
         });
     }
 
     if (alerts.length > 0) {
-        document.getElementById('alertContent').innerHTML = alerts.map(a => `<div>\u2022 ${a}</div>`).join('');
+        document.getElementById('alertContent').innerHTML = alerts.map(a => `<div>• ${a}</div>`).join('');
         document.getElementById('alertBox').classList.add('show');
     } else {
         document.getElementById('alertBox').classList.remove('show');
@@ -272,13 +304,17 @@ function formatNumber(num) {
 // ============================================
 
 document.getElementById('searchBox').addEventListener('input', searchPositions);
-
 document.getElementById('datePicker').addEventListener('change', loadHistoryData);
-
 document.getElementById('refreshBtn').addEventListener('click', loadData);
 
-// \u521d\u59cb\u5316\u52a0\u8f7d
+// 双击刷新按钮 = 实时刷新
+document.getElementById('refreshBtn').addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    refreshRealtime();
+});
+
+// 初始化加载
 init();
 
-// \u5b9a\u65f6\u5237\u65b0 (5 \u5206\u949f)
+// 定时刷新 (5 分钟)
 setInterval(loadData, 5 * 60 * 1000);
